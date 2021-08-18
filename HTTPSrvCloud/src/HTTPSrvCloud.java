@@ -20,7 +20,7 @@ import java.util.StringTokenizer;
 //                                                                                                                          *
 //Autor: Antonio Bernardo de Vasconcellos Praxedes                                                                          *
 //                                                                                                                          *  
-//Data: 16/08/2021                                                                                                          *
+//Data: 18/08/2021                                                                                                          *
 //                                                                                                                          *
 //Nome da Classe: HTTPSrvCloud                                                                                              *
 //                                                                                                                          *
@@ -38,18 +38,10 @@ public class HTTPSrvCloud implements Runnable {
 	static String CaminhoNuvem = "/home/bernardo/Executavel/";
 	static String CaminhoLocal = "/home/antonio/workspace/Cloud/";
 	
-	static String ArqHTML00 = "Cloud01.html";
-	static String ArqHTML01 = "TabelaSupCloud.html";
-	static String ArqIcone01 = "favicon.ico";
-	static String ArqCSS01 = "style.css";
-	static String ArqJS01 = "TbSupCloudJS.js";
-	
-	static String ClientIP;
-	static String Comando = "";
-	static int Contador = 0;
-	static int NumCharMsgXML = 0;
-	static int CodMsgRec = 0;
-		
+	//static String ClientIP;
+	//static int NumCharMsgXML = 0;
+	//static int CodMsgRec = 0;
+			
 	public HTTPSrvCloud(Socket c) {
 		connect = c;
 	}
@@ -68,7 +60,7 @@ public class HTTPSrvCloud implements Runnable {
 		VG.verbose = true;
 		MntMsg.PrtMsg = false;
 		MsgXML = MntMsg.XML01Falha(0);
-
+		
 		try {
 			ServerSocket serverConnect = new ServerSocket(Porta);
 			InetAddress ip = InetAddress.getLocalHost();
@@ -129,6 +121,9 @@ public class HTTPSrvCloud implements Runnable {
 			boolean fim = false;
 			String Requisicao = null;
 			LinhaCab[0] = "";
+			int Contador = 0;
+			boolean mobile = false;
+									
 			while (!fim) {
 				ChRec = ByteIn.read();
 				CChar = CChar + 1;
@@ -157,15 +152,27 @@ public class HTTPSrvCloud implements Runnable {
 			String CabHTTP = "";
 			for (int k = 0; k < CLin; k++){
 				CabHTTP = CabHTTP + LinhaCab[k] + "\n";
+				//System.out.println("k = " + k + " - Linha: " + LinhaCab[k]);
+			}
+			
+			if (CabHTTP.toLowerCase().indexOf("mobile") >= 0) {
+				mobile = true;
+				System.out.println("Acesso por Dispositivo Móvel");
+			}
+			else {
+				mobile = false;
 			}
 			
 			StringTokenizer parseLinha1 = new StringTokenizer(LinhaCab[0]);
 			String method = parseLinha1.nextToken().toUpperCase();
 			Requisicao = parseLinha1.nextToken();
 			String ArquivoReq = Requisicao.substring(1);
+			int TamArqReq = ArquivoReq.length();
+			String ArqReq = "";
+			
 			boolean RecMetodoValido = false;
 			boolean RecReqValida = false;
-						
+			
 			if (VG.verbose) {
 				System.out.println("Método: " + method + "  -  Arquivo Requisitado: " + ArquivoReq);
 			}
@@ -180,13 +187,49 @@ public class HTTPSrvCloud implements Runnable {
 				else { // Trata a requisição do método GET
 					
 					// Trata requisições de arquivos texto de página HTML
-					if (ArquivoReq.endsWith(".html") || ArquivoReq.endsWith(".htm")) {
-						RecReqValida = EnvMsgArquivoTxt(Caminho, ArquivoReq);
+					if (ArquivoReq.endsWith(".html")) {
+						
+						if (mobile) {
+							ArqReq = ArquivoReq.substring(0, TamArqReq - 5);
+							ArqReq = ArqReq + ".m.html"; 
+							}
+						else {
+							ArqReq = ArquivoReq;
+						}
+						if (VG.verbose) {
+							System.out.println("Ler Arquivo HTML = " + ArqReq);
+						}
+						RecReqValida = EnvMsgArquivoTxt(Caminho, ArqReq);
 					}
 					
-					// Trata requisições de arquivos texto de estilos (CSS) ou de programas Javascript
-					if (ArquivoReq.endsWith(".css") || ArquivoReq.endsWith(".js")) {
-						RecReqValida = EnvMsgArquivoTxt(Caminho, ArquivoReq);
+					// Trata requisições de arquivos texto de estilos (CSS)
+					if (ArquivoReq.endsWith(".css")) {
+						if (mobile) {
+							ArqReq = ArquivoReq.substring(0, TamArqReq - 4);
+							ArqReq = ArqReq + ".m.css"; 
+							}
+						else {
+							ArqReq = ArquivoReq;
+						}
+						if (VG.verbose) {
+							System.out.println("Ler Arquivo CSS = " + ArqReq);
+						}
+						RecReqValida = EnvMsgArquivoTxt(Caminho, ArqReq);
+					}
+					
+					// Trata requisições de arquivos de programas Javascript
+					if (ArquivoReq.endsWith(".js")) {
+						if (mobile) {
+							ArqReq = ArquivoReq.substring(0, TamArqReq - 3);
+							ArqReq = ArqReq + ".m.js"; 
+							}
+						else {
+							ArqReq = ArquivoReq;
+						}
+						if (VG.verbose) {
+							System.out.println("Ler Arquivo Javascript = " + ArqReq);
+						}
+						RecReqValida = EnvMsgArquivoTxt(Caminho, ArqReq);
 					}
 					
 					// Trata requisições de arquivos de imagem
@@ -195,7 +238,7 @@ public class HTTPSrvCloud implements Runnable {
 					}
 						
 					// Trata requisição de mensagem XML de Atualização dos Valores das Variáveis
-					if (ArquivoReq.equals("local001.xml")) {
+					if (ArquivoReq.endsWith("local001.xml")) {
 						RecReqValida = true;
 						Contador = Contador + 1;
 						if (Contador < 8) {
@@ -259,9 +302,8 @@ public class HTTPSrvCloud implements Runnable {
 								
 								// Responde com mensagem de XML de comando
 								String StrComando = "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n";
-								StrComando = StrComando + "<CMD>" + Comando + "</CMD>";
+								StrComando = StrComando + "<CMD></CMD>";
 								EnvMsgStringTxt(StrComando, "text/xml", "200");
-								Comando = "";
 								Contador = 0;
 							}
 							else {
@@ -323,25 +365,35 @@ public class HTTPSrvCloud implements Runnable {
 	//
 	boolean EnvMsgArquivoTxt(String Caminho, String NomeArquivo) {
 		PrintWriter out = null;
+		boolean ArquivoLido = false;
 		try {
 			out = new PrintWriter(connect.getOutputStream());
 			File Arquivo = new File(Caminho, NomeArquivo);
 			int TamArquivo = (int) Arquivo.length();
-			String tipo = TipoArquivo(NomeArquivo);
 			String DadosArquivo = LeArquivoTexto(Caminho, NomeArquivo);
-			out.println("HTTP/1.1 200 OK");
-			out.println("Server: Java HTTP Server from PraxServer : 1.0");
-			out.println("Date: " + new Date());
-			out.println("Content-type: " + tipo);
-			out.println("Content-length: " + TamArquivo);
-			out.println();
-			out.print(DadosArquivo);
-			out.flush();
-			if (VG.verbose) {
-				System.out.println("Lido Arquivo com Mensagem HTTP: " + NomeArquivo);
-				System.out.println("Enviada Mensagem HTTP do tipo " + tipo + " com " + TamArquivo + " Caracteres"); 
+			
+			if (!DadosArquivo.equals("erro")) {          // Se o arquivo foi lido corretamente
+				ArquivoLido = true;
+				String tipo = TipoArquivo(NomeArquivo);  // obtém o tipo do arquivo, monta o cabeçalho e a mensagem
+				out.println("HTTP/1.1 200 OK");
+				out.println("Server: Java HTTP Server from PraxServer : 1.0");
+				out.println("Date: " + new Date());
+				out.println("Content-type: " + tipo);
+				out.println("Content-length: " + TamArquivo);
+				out.println();
+				out.print(DadosArquivo);
+				out.flush();
+				if (VG.verbose) {
+					System.out.println("Lido --- Arquivo com Mensagem HTTP: " + NomeArquivo);
+					System.out.println("Enviada Mensagem HTTP do tipo " + tipo + " com " + TamArquivo + " Caracteres"); 
+				}
 			}
-			return(true);
+			else {
+				if (VG.verbose) {
+					System.out.println("Erro na leitura do arquivo: " + NomeArquivo);
+				}
+			}
+			return(ArquivoLido);
 		}
 		catch (IOException ioe) {
 			if (VG.verbose) {
@@ -520,20 +572,20 @@ public class HTTPSrvCloud implements Runnable {
 	//*****************************************************************************************************************
 	//
 	private String LeArquivoTexto(String Caminho, String NomeArquivo) {
-		String Res = "";
+		String Arq = "";
 		File Arquivo = new File(Caminho + NomeArquivo);
 		try {
 			BufferedReader br = new BufferedReader(new FileReader(Arquivo));
 		    
 			String st; 
 			while ((st = br.readLine()) != null) {
-				Res = Res + st + "\n";
+				Arq = Arq + st + "\n";
 			}
 		} catch (IOException e) {
-			System.err.println("Arquivo nao encontrado");
+			return("erro");
 		}
 		
-		return(Res);
+		return(Arq);
 	}
 	
 	
