@@ -1,0 +1,357 @@
+Desenvolvendo um Cliente FTP
+
+Um recurso que já existe há um bom tempo, mas que é pouco discutido para aplicação prática, é o desenvolvimento de clientes de FTP utilizando o pacote Net da Jakarta Commons. A grande vantagem de criar seu próprio cliente FTP é manipular e mesclar sua aplicação Java sem a ajuda de um programa externo. Com isso é possível associar à sua aplicação uma rotina de backup para uma área no servidor FTP ou um Web Service que fornece informações de um servidor FTP remoto, por exemplo.
+ 
+
+Antes de mais nada, devemos fazer o download da biblioteca Commons/Net localizada no site http://jakarta.apache.org/commons/net/index.html ou em http://jakarta.apache.org/site/downloads/downloads_commons-net.cgi . Após efetuado o download será necessário adicionar ao CLASSPATH o arquivo commons-net-1.4.1.jar (versão mais atual até a publicação deste artigo).
+
+Abaixo segue um exemplo de conexão no servidor FTP, listando os arquivos em uma determinada pasta:
+
+ 
+
+package br.com.java;
+
+import java.io.IOException;
+import java.net.SocketException;
+import org.apache.commons.net.ftp.FTPClient;
+
+ 
+
+public class FTPConnect {
+
+      public static void main (String[] args) throws SocketException, IOException {
+
+            FTPClient ftp = new FTPClient();
+
+            ftp.connect( "ftp.petrobras.com.br" );
+
+            ftp.login( "usuario", "senha" );
+
+            ftp.changeWorkingDirectory ("meuDir");
+
+            String[] arq = ftp.listNames();
+
+            System.out.println ("Listando arquivos: \n");
+
+            for (String f : arq){
+
+                  System.out.println(f);            
+
+            }
+      }
+}
+
+ 
+
+Exemplo de saida:
+ 
+
+RD-4410-00073A[191546].log
+
+RD-4410-00074A[191602].log
+
+MeuArquivo.doc
+
+SeuArquivo.java
+
+NossoArquivo.txt
+
+Na primeira linha é instanciada a classe FTPClient, utilizada para conectar ao servidor FTP. Segue a descrição dos métodos:
+
+·         connect(String Servidor) – Conecta ao Servidor FTP
+
+·         login (String usuario, String senha) – efetua o login no Servidor
+
+·         changeWorkingDirectory (String caminho) – Muda o diretório de trabalho do servidor
+
+·         listFiles() - Retorna uma lista de Objetos do tipo FTPFile
+
+·         listNames() - Retorna um array de Strings contendo o nome dos arquivos no diretório de trabalho atual
+
+·         listNames(String caminho) – Mesmo que o anterior, mas passando como parâmetro o caminho do diretório a ser listado.
+
+FTPFile é uma classe que fornece as informações dos arquivos armazenados no FTP. Isso nós dá a possibilidade de obter dados relacionados aos arquivos armazenados no servidor.
+
+Descrição de alguns métodos da classe FTPFile:
+
+·         getName() - Retorna o nome do arquivo
+
+·         getSize() - Retorna o tamanho do arquivo em bytes
+
+·         isDirectory() - Retorna true se o FTPFile é um diretório
+
+·         isFile() - Retorna true se o FTPFile é um arquivo
+
+·         isSymbolicLink () - Retorna true se o FTPFile é um link simbólico
+
+·         getType() - Retorna um int que define o tipo do FTPFile (0 para Arquivo, 1 para Diretório e 2 para Link Simbólico)
+
+Enviando Arquivos
+O armazenamento de arquivos é feito de forma bem simples, conforme exemplo abaixo:
+
+package br.com.java;
+
+import java.io.FileInputStream;
+import java.io.FileOutputStream;
+import java.io.IOException;
+import java.net.SocketException;
+
+import org.apache.commons.net.ftp.FTPClient;
+ 
+
+public class FTPConnect {
+
+      public static void main (String[] args) throws SocketException, IOException {
+
+            FTPClient ftp = new FTPClient();
+
+            ftp.connect( "ftp.meudominio.com.br" );
+
+            ftp.login( "usuario", "senha" );
+
+            FileInputStream arqEnviar = new FileInputStream("/Users/glaucio/Documents/artigoFTP.doc");
+
+            if (ftp.storeFile ("meuarquivo.doc", arqEnviar))
+
+                  System.out.println("Arquivo armazenado com sucesso!");
+
+            else
+
+                  System.out.println ("Erro ao armazenar o arquivo.");
+      }
+}
+
+Saída:
+
+Arquivo armazenado com sucesso!
+
+Para enviar um arquivo é preciso instanciar um objeto InputStream para passar como parâmetro no método storeFile da classe FTPClient. O primeiro parâmetro é o nome do arquivo que será armazenado no FTP e o segundo é o InputStream, como dito anteriormente.
+
+Recebendo Arquivos
+Abaixo segue o código-exemplo para o download de arquivos:
+
+package br.com.java;
+
+import java.io.FileOutputStream;
+import java.io.IOException;
+import java.net.SocketException;
+
+import org.apache.commons.net.ftp.FTPClient;
+
+
+public class FTPConnect {
+
+      public static void main (String[] args) throws SocketException, IOException {
+
+            FTPClient ftp = new FTPClient();
+
+            ftp.connect( "ftp.meudominio.com.br" );
+
+            ftp.login( "usuario", "senha" );
+
+            ftp.changeWorkingDirectory ("grdt_websigem");
+
+            String[] arq = ftp.listNames();
+
+            FileOutputStream fos = new FileOutputStream( "/Users/glaucio/Desktop/meulog.log" );
+
+            if (ftp.retrieveFile( "RD-4410-00412[192017].log", fos ))
+
+                  System.out.println("Download efetuado com sucesso!");
+
+            else
+
+                  System.out.println ("Erro ao efetuar download do arquivo.");
+
+      }
+}
+
+A única diferença que podemos observar com relação ao exemplo anterior é o tipo de Stream utilizado. Para enviar arquivos é necessário instanciar um FileInputStream e, para receber, é preciso ter um FileOutputStream. Além disso, o método retrieveFile da classe FTPClient recebe o nome do arquivo a ser baixado e também caminho em que o documento será armazenado (de acordo com o exemplo, para a minha área de trabalho). Ambos os métodos, storeFile e retrieveFile, retornam um booleano para checar se a operação foi concluída com sucesso.
+
+Efetuar logout e desconectar
+Sempre procure efetuar logout e desconectar do FTP antes de finalizar a sua aplicação para liberar os recursos do servidor. Para isto seguem os comandos da classe FTPClient:
+
+ftp.logout();
+ftp.disconnect();
+
+Código completo:
+
+package br.com.java;
+
+import java.io.FileInputStream;
+import java.io.FileOutputStream;
+import java.io.IOException;
+import java.net.SocketException;
+
+import org.apache.commons.net.ftp.FTPClient;
+ 
+
+public class FTPConnect {
+
+      public static void main (String[] args) throws SocketException, IOException{
+
+            FTPClient ftp = new FTPClient();
+
+            //Fazendo a conexão
+
+            ftp.connect( "ftp.petrobras.com.br" );
+
+            //Efetuando o Login
+
+            ftp.login( "iercps", "iercpsadmin" );
+
+            //Mundando o diretório de trabalho
+
+            ftp.changeWorkingDirectory ("grdt_websigem");
+
+            //Adiquirindo o nome dos arquivos / diretórios existentes
+
+            String[] arq = ftp.listNames();
+
+            System.out.println ("Listando arquivos: \n");
+
+            for (String f : arq){
+
+                  System.out.println(f);            
+
+            }
+
+            //Fazendo o download do arquivo RD-4410-00412[192017].log para
+
+              meulog.log
+
+            FileOutputStream fos = new FileOutputStream( "/Users/glaucio/Desktop/meulog.log" );
+        
+            if (ftp.retrieveFile( "RD-4410-00412[192017].log", fos ))
+
+                  System.out.println("Download efetuado com sucesso!");
+
+            else
+
+                  System.out.println ("Erro ao efetuar download do arquivo.");
+           
+
+            //Fazendo o upload do arquivo artigoFTP.doc para o ftp com um novo
+
+              nome (meuarquivo.doc)
+
+            FileInputStream arqEnviar = new FileInputStream ("/Users/glaucio/Documents/artigoFTP.doc");
+
+            if (ftp.storeFile ("meuarquivo.doc", arqEnviar))
+
+                  System.out.println("Arquivo armazenado com sucesso!");
+
+            else
+
+                  System.out.println ("Erro ao armazenar o arquivo.");
+
+            ftp.logout();
+            ftp.disconnect();
+
+      }
+}    
+
+Todas as funções citadas podem ser feitas via console ou algum programa de FTP sem problemas. Segue um exemplo abaixo:
+
+glaucio$ ftp ftp.meudominio.com.br
+Connected to ftp.meudominio.com.br.
+220 s6000ws30 Microsoft FTP Service (Version 5.0).
+Name (ftp.meudominio.com.br:glaucio): glaucio  
+331 Password required for glaucio.
+Password:
+230-----------------------------------------
+230-Servidor FTP MeuDominio
+230-----------------------------------------
+230 User glaucio logged in.
+Remote system type is Windows_NT.
+ftp> cd grdt_websigem
+250 CWD command successful.
+
+ftp> get RD-4410-00412[192017].log
+local: RD-4410-00412[192017].log remote: RD-4410-00412[192017].log
+227 Entering Passive Mode (200,179,65,44,18,8)
+125 Data connection already open; Transfer starting.
+100% |*************************************|   385     320.25 KB/s    00:00
+226 Transfer complete.
+385 bytes received in 00:00 (95.30 KB/s)
+put
+(local-file) /Users/glaucio/Desktop/meulog.log
+(remote-file) meulog.txt
+local: /Users/glaucio/Desktop/meulog.log remote: meulog.txt
+227 Entering Passive Mode (200,179,65,44,18,10)
+125 Data connection already open; Transfer starting.
+100% |*************************************|   385       4.78 KB/s    --:-- ETA
+226 Transfer complete.
+385 bytes sent in 00:00 (2.43 KB/s)
+
+Através da API Commons Net é possível manipular diversas funcionalidades oferecidas para o uso de um servidor FTP. Neste artigo foi visto como conectar, logar, enviar e receber arquivos para uma área de FTP. Agora é só criar as suas próprias rotinas para enviar e receber arquivos a partir de sua aplicação Java. Um exemplo do tipo seria verificar se algum arquivo foi modificado na máquina local e enviá-lo para uma área de FTP caso a modificação tenha sido feita. Podemos também agendar uma rotina que faça o backup de um servidor para outro, escolhendo somente arquivos PDF, por exemplo.
+
+Enfim, para quem trabalha com sistemas que utilizam FTP, a API Commons Net é uma mão na roda.
+
+---------------------------------------------------------------------------------------------------------------------------------
+
+package net.codejava.ftp;
+ 
+import java.io.IOException;
+ 
+import org.apache.commons.net.ftp.FTPClient;
+import org.apache.commons.net.ftp.FTPFile;
+ 
+/**
+ * An example program that demonstrates how to get details of a file and
+ * directory from a FTP server using Apache Commnons Net API.
+ * @author www.codejava.net
+ *
+ */
+public class FTPGetFileDetails {
+ 
+    public static void main(String[] args) {
+        String server = "www.myserver.com";
+        int port = 21;
+        String user = "username";
+        String pass = "password";
+ 
+        FTPClient ftpClient = new FTPClient();
+ 
+        try {
+            ftpClient.connect(server, port);
+            ftpClient.login(user, pass);
+ 
+            // use local passive mode to pass firewall
+            ftpClient.enterLocalPassiveMode();
+ 
+            // get details of a file or directory
+            String remoteFilePath = "Java/CodeLib/FTP.rar";
+ 
+            FTPFile ftpFile = ftpClient.mlistFile(remoteFilePath);
+            if (ftpFile != null) {
+                String name = ftpFile.getName();
+                long size = ftpFile.getSize();
+                String timestamp = ftpFile.getTimestamp().getTime().toString();
+                String type = ftpFile.isDirectory() ? "Directory" : "File";
+ 
+                System.out.println("Name: " + name);
+                System.out.println("Size: " + size);
+                System.out.println("Type: " + type);
+                System.out.println("Timestamp: " + timestamp);
+            } else {
+                System.out.println("The specified file/directory may not exist!");
+            }
+ 
+            ftpClient.logout();
+            ftpClient.disconnect();
+ 
+        } catch (IOException ex) {
+            ex.printStackTrace();
+        } finally {
+            if (ftpClient.isConnected()) {
+                try {
+                    ftpClient.disconnect();
+                } catch (IOException ex) {
+                    ex.printStackTrace();
+                }
+            }
+        }
+    }
+}
+

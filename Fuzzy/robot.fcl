@@ -1,0 +1,56 @@
+// Block definition (there may be more than one block per file)
+FUNCTION_BLOCK robot
+
+VAR INPUT
+rd : REAL; // Right distance
+dq : REAL; // Distance quotient
+o  : REAL; // Orientation. Note: ’or’ is a reserved word
+v  : REAL; // Velocity
+END VAR
+
+VAR OUTPUT
+la : REAL; // Linear acceleration
+av : REAL; // Angular velocity
+END VAR
+
+FUZZIFY rd
+TERM L  := trian 0 0 1;
+TERM M  := trian 0 1 2;
+TERM H  := trian 1 2 3;
+TERM VH := trian 2 3 3;
+END FUZZIFY
+
+FUZZIFY dq
+TERM L := trian 0 0 2;
+TERM H := trian 0 2 2;
+END FUZZIFY
+
+FUZZIFY o
+TERM HL := trian -45 -45 -22.5;
+TERM LL := trian -45 -22.5 0;
+TERM Z  := trian -22.5 0 22.5;
+TERM LR := trian 0 22.5 45;
+TERM HR := trian 22.5 45 4
+END FUZZIFY
+
+FUZZIFY v
+TERM L := trian 0 0 1;
+TERM H := trian 0 1 1;
+END FUZZIFY
+
+DEFUZZIFY la
+TERM VHB := trian -1 -1 -0.75;
+TERM HB  := trian -1 -0.75 -0.5;
+TERM MB  := trian -0.75 -0.5 -0.25;
+TERM SB  := trian -0.5 -0.25 0;
+TERM Z   := trian -0.25 0 0.25;
+TERM SA  := trian 0 0.25 0.5;
+TERM MA  := trian 0.25 0.5 0.75;
+TERM HA  := trian 0.5 0.75 1;
+TERM VHA := trian 0.75 1 1;
+METHOD : COG; // Center of Gravity
+DEFAULT := 0;
+END DEFUZZIFY
+
+END_FUNCTION_BLOCK
+
