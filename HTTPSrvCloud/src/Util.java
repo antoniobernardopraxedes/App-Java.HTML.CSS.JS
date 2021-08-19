@@ -1,10 +1,101 @@
-import java.io.*;
 import java.text.DateFormat;
 import java.text.SimpleDateFormat;
 import java.util.Date;
 
 
 public class Util {
+	
+	//*****************************************************************************************************************
+	// Nome do Método: LeHoraData                                                                                     *
+	//                                                                                                                *
+	// Funcao: le a data e hora do relogio do computador usando ZonedDateTime no formato string                       *
+	//          "2020-01-01T10:38:17.240-03:00[America/Araguaina]"                                                    *
+	//                                                                                                                *
+	// Entrada: não tem                                                                                               *
+	//                                                                                                                *
+	// Saida: array com 6 Bytes: [0] = Hora, [1] = Minuto, [2] = Segundo, [3] = Dia, [4] = Mês, [5] = Ano             *                                                                                 *
+	//                                                                                                                *
+	//*****************************************************************************************************************
+	//
+	static byte[] LeDataHora() {
+		
+		DateFormat dfor = new SimpleDateFormat("dd/MM/yyyy HH:mm:ss");
+		Date obj = new Date();
+		String DataHora = dfor.format(obj); // 04/08/2021 17:22:48
+											// 0123456789012345678
+											// 0000000000111111111
+				
+		byte DH [] = new byte[7];
+		
+		int Dia = 10 * Character.digit(DataHora.charAt(0), 10) + Character.digit(DataHora.charAt(1), 10);
+		int Mes = 10 * Character.digit(DataHora.charAt(3), 10) + Character.digit(DataHora.charAt(4), 10);
+		int AnoCentenas = 10 * Character.digit(DataHora.charAt(6), 10) + Character.digit(DataHora.charAt(7), 10);
+	    int AnoUnidades = 10 * Character.digit(DataHora.charAt(8), 10) + Character.digit(DataHora.charAt(9), 10);
+	    
+	    int Hora = 10 * Character.digit(DataHora.charAt(11), 10) + Character.digit(DataHora.charAt(12), 10);
+	    int Minuto = 10 * Character.digit(DataHora.charAt(14), 10) + Character.digit(DataHora.charAt(15), 10);
+	    int Segundo = 10 * Character.digit(DataHora.charAt(17), 10) + Character.digit(DataHora.charAt(18), 10);
+	    
+	    DH[0] = (byte)ByteLow(Hora);         // Hora
+	    DH[1] = (byte)ByteLow(Minuto);       // Minuto
+	    DH[2] = (byte)ByteLow(Segundo);      // Segundo
+	    DH[3] = (byte)ByteLow(Dia);          // Dia
+	    DH[4] = (byte)ByteLow(Mes);          // Mes
+	    DH[5] = (byte)ByteLow(AnoUnidades);  // Ano (Unidades)
+	    DH[6] = (byte)ByteLow(AnoCentenas);  // Ano (Centenas)
+		
+	    return(DH);
+	}
+	
+	
+	//*****************************************************************************************************************
+	// Nome do Método: ImprimeHoraData                                                                                *
+	//                                                                                                                *
+	// Funcao: gera uma string com a data e a hora recebida em um array de bytes                                      *
+	//                                                                                                                *
+	// Entrada: Array[6] [0] = Hora, [1] = Minutos, [2] = Segundos, [3] = Dia, [4] = Mês, [5] = Ano, [6] = Ano        *
+	//                                                                                                                *
+	// Saida: string no formato HH:MM:SS - DD/MM/AAAA                                                                 *                                                                                 *
+	//                                                                                                                *
+	//*****************************************************************************************************************
+	//
+	static String ImprimeHoraData(byte [] DH, boolean Opcao) {
+		
+		String Msg = "";
+		if (DH[0] < 10) { Msg = Msg + "0"; }
+		Msg = Msg + DH[0] + ":";
+		if (DH[1] < 10) { Msg = Msg + "0"; }
+		Msg = Msg + DH[1] + ":";
+		if (DH[2] < 10) { Msg = Msg + "0"; }
+		Msg = Msg + DH[2];
+		
+		if (Opcao) {
+			Msg = Msg + " - ";
+			if (DH[3] < 10) { Msg = Msg + "0"; }
+			Msg = Msg + DH[3] + "/";
+			if (DH[4] < 10) { Msg = Msg + "0"; }
+			Msg = Msg + DH[4] + "/" + DH[5] + DH[6];
+		}
+		
+		return(Msg);
+	}
+	
+	//*****************************************************************************************************************
+	// Nome do Método: Terminal                                                                                       *
+	//                                                                                                                *
+	// Funcao: imprime uma mensagem no Terminal                                                                       *
+	//                                                                                                                *
+	// Entrada: string com a mensagem e a flag de habilitação (Verbose)                                               *
+	//                                                                                                                *
+	// Saida: não tem                                                                                                 *
+	//                                                                                                                *
+	//*****************************************************************************************************************
+	//
+	public static void Terminal(String Msg, boolean Opcao, boolean Verbose) {
+		if (Verbose) {
+			System.out.println(ImprimeHoraData(LeDataHora(), Opcao) + " - " + Msg);
+		}
+	}
 
 	//*****************************************************************************************************************
 	// Nome da Rotina: BytetoInt                                                                                      *
@@ -323,92 +414,8 @@ public class Util {
 	}
 	
 	
-	static String ImprimeHoraData(byte hora,byte minuto,byte segundo,byte dia,byte mes,byte ano) {
-		
-		String Msg = "";
-		if (hora < 10) { Msg = Msg + "0"; }
-		Msg = Msg + hora + ":";
-		if (minuto < 10) { Msg = Msg + "0"; }
-		Msg = Msg + minuto + ":";
-		if (segundo < 10) { Msg = Msg + "0"; }
-		Msg = Msg + segundo;
-		Msg = Msg + " - ";
-		if (dia < 10) { Msg = Msg + "0"; }
-		Msg = Msg + dia + "/";
-		if (mes < 10) { Msg = Msg + "0"; }
-		Msg = Msg + mes + "/" + ano + " ";
-		return(Msg);
-	}
 	
-	//*****************************************************************************************************************
-	// Nome da Rotina: LeHoraData                                                                                     *
-	//                                                                                                                *
-	// Funcao: le a data e hora do relogio do computador usando ZonedDateTime no formato string                       *
-	//          "2020-01-01T10:38:17.240-03:00[America/Araguaina]"                                                    *
-	//                                                                                                                *
-	// Entrada: não tem                                                                                               *
-	//                                                                                                                *
-	// Saida: array com 6 Bytes: [0] = Hora, [1] = Minuto, [2] = Segundo, [3] = Dia, [4] = Mês, [5] = Ano             *                                                                                 *
-	//                                                                                                                *
-	//*****************************************************************************************************************
-	//
-	static byte[] LeDataHora() {
-		
-		//getting current date and time using Date class
-		DateFormat dfor = new SimpleDateFormat("dd/MM/yyyy HH:mm:ss");
-		Date obj = new Date();
-		String DataHora = dfor.format(obj); // 04/08/2021 17:22:48
-											// 0123456789012345678
-											// 0000000000111111111
-				
-		byte DH [] = new byte[7];
-		
-		int Dia = 10 * Character.digit(DataHora.charAt(0), 10) + Character.digit(DataHora.charAt(1), 10);
-		int Mes = 10 * Character.digit(DataHora.charAt(3), 10) + Character.digit(DataHora.charAt(4), 10);
-		int AnoCentenas = 10 * Character.digit(DataHora.charAt(6), 10) + Character.digit(DataHora.charAt(7), 10);
-	    int AnoUnidades = 10 * Character.digit(DataHora.charAt(8), 10) + Character.digit(DataHora.charAt(9), 10);
-	    
-	    int Hora = 10 * Character.digit(DataHora.charAt(11), 10) + Character.digit(DataHora.charAt(12), 10);
-	    int Minuto = 10 * Character.digit(DataHora.charAt(14), 10) + Character.digit(DataHora.charAt(15), 10);
-	    int Segundo = 10 * Character.digit(DataHora.charAt(17), 10) + Character.digit(DataHora.charAt(18), 10);
-	    
-	    DH[0] = (byte)ByteLow(Hora);         // Hora
-	    DH[1] = (byte)ByteLow(Minuto);       // Minuto
-	    DH[2] = (byte)ByteLow(Segundo);      // Segundo
-	    DH[3] = (byte)ByteLow(Dia);          // Dia
-	    DH[4] = (byte)ByteLow(Mes);          // Mes
-	    DH[5] = (byte)ByteLow(AnoUnidades);  // Ano (Unidades)
-	    DH[6] = (byte)ByteLow(AnoCentenas);  // Ano (Centenas)
-		
-	    //if (VG.verbose) {
-	    //	System.out.println("DataHora = "+ImpData(DH[3],DH[4],DH[5])+" "+ImpHora(DH[0],DH[1],DH[2])+" Fuso Horario = -" + FusoHorario);
-	    //}
-	    
-	    return(DH);
-	}
-	
-	
-	//*****************************************************************************************************************
-	// Nome da Rotina: GravaArquivo()                                                                                 *
-    //	                                                                                                              *
-	// Funcao: grava um arquivo                                                                                       *
-	// Entrada: string com o nome do caminho e do arquivo e texto a ser escrito no arquivo                            *
-	// Saida: = 1 leu arquivo / = 0 falha ao ler o arquivo                                                            *
-    //	                                                                                                              *
-	//*****************************************************************************************************************
-	//
-	public static void GravaArquivo(String nomeArquivo, String texto) {
 
-	try {
-		PrintWriter out = new PrintWriter(new FileWriter(nomeArquivo));
-		out.write(texto);
-		out.close();
-		} catch (IOException e) {
-			System.out.print("Erro = " + e);
-
-		}
-	}
-	
 	
 	//*****************************************************************************************************************
 	// Nome da Rotina: FormAna                                                                                        *

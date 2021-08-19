@@ -1,13 +1,7 @@
 import java.io.BufferedOutputStream;
-import java.io.BufferedInputStream;
 import java.io.BufferedReader;
-import java.io.File;
-import java.io.FileInputStream;
-import java.io.FileNotFoundException;
-import java.io.FileReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
-import java.io.OutputStream;
 import java.io.InputStream;
 import java.io.PrintWriter;
 import java.net.InetAddress;
@@ -20,7 +14,7 @@ import java.util.StringTokenizer;
 //                                                                                                                          *
 //Autor: Antonio Bernardo de Vasconcellos Praxedes                                                                          *
 //                                                                                                                          *  
-//Data: 18/08/2021                                                                                                          *
+//Data: 19/08/2021                                                                                                          *
 //                                                                                                                          *
 //Nome da Classe: HTTPSrvCloud                                                                                              *
 //                                                                                                                          *
@@ -34,13 +28,10 @@ public class HTTPSrvCloud implements Runnable {
 	static int Porta = 8080;
 	private Socket connect;
 	
+	static boolean Verbose = true;
 	static String Caminho = "";
 	static String CaminhoNuvem = "/home/bernardo/Executavel/";
 	static String CaminhoLocal = "/home/antonio/workspace/Cloud/";
-	
-	//static String ClientIP;
-	//static int NumCharMsgXML = 0;
-	//static int CodMsgRec = 0;
 			
 	public HTTPSrvCloud(Socket c) {
 		connect = c;
@@ -48,18 +39,17 @@ public class HTTPSrvCloud implements Runnable {
 
 	//***************************************************************************************************************************
 	//                                                                                                                          *
-    // Rotina Principal (main) da ClasseHTTPSrvSup                                                                              *
+    // Método Executavel da ClasseHTTPSrvSup                                                                                    *
 	//                                                                                                                          *
-	// Funcao: aguarda a conexao do Cliente (Browser)                                                                           *
+	// Funcao: Servidor HTTP aguarda a conexão do Cliente                                                                       *
 	//                                                                                                                          *
 	//***************************************************************************************************************************
 	//
 	public static void main(String[] args) {
 		// TODO Auto-generated method stub
-		MntMsg.IniciaVarGlobais();
-		VG.verbose = true;
-		MntMsg.PrtMsg = false;
-		MsgXML = MntMsg.XML01Falha(0);
+		Mensagem.IniciaVarGlobais();
+		Mensagem.PrtMsg = false;
+		MsgXML = Mensagem.XML01Falha(0);
 		
 		try {
 			ServerSocket serverConnect = new ServerSocket(Porta);
@@ -69,20 +59,18 @@ public class HTTPSrvCloud implements Runnable {
 			
 			if (NomeComputador.equals("antonio-Vostro1510")) {
 				Caminho = CaminhoLocal;
-				System.out.println("\n\nServidor Iniciado no Computador Local");
+				Util.Terminal("Servidor Iniciado no Computador Local", false, true);
 			}
 			else {
 				Caminho = CaminhoNuvem;
-				System.out.println("\n\nServidor Iniciado no Computador na Nuvem");
+				Util.Terminal("Servidor Iniciado no Computador na Nuvem" + Porta, false, true);
 			}
 			
-			System.out.println("Esperando por Conexoes na Porta: " + Porta);
+			Util.Terminal("Esperando por Conexoes na Porta: " + Porta, false, Verbose);
 			
 			while (true) {    // Espera a conexão do cliente
 				HTTPSrvCloud myServer = new HTTPSrvCloud(serverConnect.accept());
-				if (VG.verbose) {
-					System.out.println("Conexao Aberta com o Cliente (" + new Date() + ")");
-				}
+				Util.Terminal("Conexao Aberta com o Cliente (" + new Date() + ")", false, Verbose);
 				Thread thread = new Thread(myServer);      // Thread para gerenciar a conexão do cliente
 				thread.start();
 			}
@@ -158,6 +146,7 @@ public class HTTPSrvCloud implements Runnable {
 			if (CabHTTP.toLowerCase().indexOf("mobile") >= 0) {
 				mobile = true;
 				System.out.println("Acesso por Dispositivo Móvel");
+				Util.Terminal("Acesso por Dispositivo Móvel", false, Verbose);
 			}
 			else {
 				mobile = false;
@@ -165,24 +154,26 @@ public class HTTPSrvCloud implements Runnable {
 			
 			StringTokenizer parseLinha1 = new StringTokenizer(LinhaCab[0]);
 			String method = parseLinha1.nextToken().toUpperCase();
-			Requisicao = parseLinha1.nextToken();
-			String ArquivoReq = Requisicao.substring(1);
+			String ArquivoReq = "";
+			
+			if (parseLinha1.hasMoreTokens()) {;
+				Requisicao = parseLinha1.nextToken();
+				ArquivoReq = Requisicao.substring(1);
+			}
+			
 			int TamArqReq = ArquivoReq.length();
 			String ArqReq = "";
 			
 			boolean RecMetodoValido = false;
 			boolean RecReqValida = false;
-			
-			if (VG.verbose) {
-				System.out.println("Método: " + method + "  -  Arquivo Requisitado: " + ArquivoReq);
-			}
+			Util.Terminal("Método: " + method + "  -  Arquivo Requisitado: " + ArquivoReq, false, Verbose);
 			
 			if (method.equals("GET")) {  // Trata o método GET
 				RecMetodoValido = true;
 					
 				// Se não há requisição de arquivo, solicita arquivo index.html (página raiz)
 				if (Requisicao.equals("/") || Requisicao.equals("/?")) {
-					RecReqValida = EnvMsgArquivoTxt(Caminho, "index.html");
+					RecReqValida = Mensagem.EnvArqTxt(connect, Caminho, "index.html", Verbose);
 				}
 				else { // Trata a requisição do método GET
 					
@@ -196,10 +187,7 @@ public class HTTPSrvCloud implements Runnable {
 						else {
 							ArqReq = ArquivoReq;
 						}
-						if (VG.verbose) {
-							System.out.println("Ler Arquivo HTML = " + ArqReq);
-						}
-						RecReqValida = EnvMsgArquivoTxt(Caminho, ArqReq);
+						RecReqValida = Mensagem.EnvArqTxt(connect, Caminho, ArqReq, Verbose);
 					}
 					
 					// Trata requisições de arquivos texto de estilos (CSS)
@@ -211,10 +199,7 @@ public class HTTPSrvCloud implements Runnable {
 						else {
 							ArqReq = ArquivoReq;
 						}
-						if (VG.verbose) {
-							System.out.println("Ler Arquivo CSS = " + ArqReq);
-						}
-						RecReqValida = EnvMsgArquivoTxt(Caminho, ArqReq);
+						RecReqValida = Mensagem.EnvArqTxt(connect, Caminho, ArqReq, Verbose);
 					}
 					
 					// Trata requisições de arquivos de programas Javascript
@@ -226,15 +211,12 @@ public class HTTPSrvCloud implements Runnable {
 						else {
 							ArqReq = ArquivoReq;
 						}
-						if (VG.verbose) {
-							System.out.println("Ler Arquivo Javascript = " + ArqReq);
-						}
-						RecReqValida = EnvMsgArquivoTxt(Caminho, ArqReq);
+						RecReqValida = Mensagem.EnvArqTxt(connect, Caminho, ArqReq, Verbose);
 					}
 					
 					// Trata requisições de arquivos de imagem
 					if (ArquivoReq.endsWith(".ico") || ArquivoReq.endsWith(".jpg") || ArquivoReq.endsWith(".png")) {
-						RecReqValida = EnvMsgArquivoByte(Caminho, ArquivoReq);
+						RecReqValida = Mensagem.EnvArqByte(connect, Caminho, ArquivoReq, Verbose);
 					}
 						
 					// Trata requisição de mensagem XML de Atualização dos Valores das Variáveis
@@ -242,13 +224,12 @@ public class HTTPSrvCloud implements Runnable {
 						RecReqValida = true;
 						Contador = Contador + 1;
 						if (Contador < 8) {
-							EnvMsgStringTxt(MsgXML, "text/xml", "200");
+							Mensagem.EnvString(connect, MsgXML, "text/xml", "200", Verbose);
 						}
 						else {
-							EnvMsgStringTxt(MntMsg.XML01Falha(0), "text/xml", "200");
+							Mensagem.EnvString(connect, Mensagem.XML01Falha(0), "text/xml", "200", Verbose);
 						}
 					}
-				
 				} // else if (Requisicao.equals("/") || Requisicao.equals("/?")) {
 			}  // if (method.equals("GET"))
 							    
@@ -257,13 +238,9 @@ public class HTTPSrvCloud implements Runnable {
 				if (ArquivoReq.equals("atualiza")) {  // e requisição = "atualiza", indica mensagem binária de atualização
 					RecReqValida = true;
 					
-					if (VG.verbose) {
-						System.out.println("Recebida mensagem de atualização");
-					}
-					
 					String TamMsg = "";       // TamMsg = string com o número de caracteres/bytes da mensagem
 					String TipoMsg = "";      // TipoMsg = string com o tipo da mensagem (XML ou octet/stream"
-					int TamanhoMensagem = 0;  // TamanhoMensagem = inteiro com o número de caracteres/bytes da mensagem
+					int TamanhoMsg = 0;       // TamanhoMensagem = inteiro com o número de caracteres/bytes da mensagem
 					StringTokenizer parseLinha3 = new StringTokenizer(LinhaCab[2]); // Linha 3
 					String IdLinha3 =  parseLinha3.nextToken().toLowerCase();       // IdLinha3 minúsculo deve ser "Content-Length:"
 					StringTokenizer parseLinha4 = new StringTokenizer(LinhaCab[3]); // Linha 4
@@ -271,69 +248,58 @@ public class HTTPSrvCloud implements Runnable {
 					
 					if (IdLinha3.equals("content-length:") && IdLinha4.equals("content-type:")) {
 						TamMsg = parseLinha3.nextToken();                  
-						TamanhoMensagem = Util.StringToInt(TamMsg);
+						TamanhoMsg = Util.StringToInt(TamMsg);
 						TipoMsg = parseLinha4.nextToken().toLowerCase();
 												
 						if (TipoMsg.equals("application/octet-stream")) {  // Se é mensagem do tipo binária
 								
-							for (int i = 0; i < TamanhoMensagem; i++){
-								MntMsg.receiveData1[i] = ByteIn.read();    // Recebe os bytes e carrega no buffer
+							for (int i = 0; i < TamanhoMsg; i++){
+								Mensagem.receiveData1[i] = ByteIn.read();    // Recebe os bytes e carrega no buffer
 							}
 							
-							int Byte0 = MntMsg.receiveData1[0];
-							int Byte1 = MntMsg.receiveData1[1];
+							int Byte0 = Mensagem.receiveData1[0];
+							int Byte1 = Mensagem.receiveData1[1];
 							boolean MsgBinOK = false;
 							if ((Byte0 == 0x60) && (Byte1 == 0x45)) {  // Se recebeu mensagem CoAP válida,
-								MntMsg.LeEstMedsPayload();             // le as variaveis
+								Mensagem.LeEstMedsPayload();             // le as variaveis
 								MsgBinOK = true;
 							}
 							if (MsgBinOK) {                         // Se a mensagem CoAP recebida é válida,
-								if (MntMsg.EstCom1 == 1) {   		// e se a comunicacao com o programa de atualização está OK,
-									MsgXML = MntMsg.XML01();        // monta a mensagem XML
+								if (Mensagem.EstCom1 == 1) {   		// e se a comunicacao com o programa de atualização está OK,
+									MsgXML = Mensagem.XML01();        // monta a mensagem XML
 									MsgXML = MsgXML + " ";
 								}
 								else {                        		// Se a comunicacao com o programa de atualização está em falha,
-									MntMsg.XML01Falha(1);     		// monta a mensagem XML de falha
+									Mensagem.XML01Falha(1);     		// monta a mensagem XML de falha
 								}
-								if (MntMsg.verbose) {
-									System.out.println("Recebida Msg HTTP Binaria de Atualizacao com " + TamanhoMensagem + " Bytes");
-									System.out.println("Hora da UTR: " + Util.ImpHora(MntMsg.Hora ,MntMsg.Minuto, MntMsg.Segundo));
-								}
+								Util.Terminal("Recebida Mensagem Binária de Atualizacao com " + TamanhoMsg + " Bytes", false, Verbose);
 								
 								// Responde com mensagem de XML de comando
 								String StrComando = "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n";
 								StrComando = StrComando + "<CMD></CMD>";
-								EnvMsgStringTxt(StrComando, "text/xml", "200");
+								//EnvMsgStringTxt(StrComando, "text/xml", "200");
+								Mensagem.EnvString(connect, StrComando, "text/xml", "200", Verbose);
 								Contador = 0;
 							}
 							else {
-								if (MntMsg.verbose) {
-									System.out.println("Recebida Mensagem Binaria Invalida");
-								}
+								Util.Terminal("Recebida Mensagem de Atualizacao Invalida", false, Verbose);
 								String StrComando = "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n";
 								StrComando = StrComando + "<CMD>MsgInv</CMD>";
-								EnvMsgStringTxt(StrComando, "text/xml", "200");	
+								Mensagem.EnvString(connect, StrComando, "text/xml", "200", Verbose);
 							}
 						} // if (TipoMsg.equals("application/octet-stream"))
 					} // if ((IdLinha3 == "content-length:") && (IdLinha4 == "content-type:"))
 				}  // if (Requisicao.equals("atualiza"))
 			} // if (method.equals("POST"))
 			
-			if (RecMetodoValido) {             // Se foi recebido um método válido,
-				if (!RecReqValida) {           // e se não está disponível o recurso solicitado pelo método GET ou POST
-					EnvMsgStringTxtErro(404);  // envia mensagem de erro 404 (Recurso não Disponível)
+			if (RecMetodoValido) {    // Se foi recebido um método válido,
+				if (!RecReqValida) {  // e se não está disponível o recurso solicitado pelo método GET ou POST
+					Mensagem.EnvStringErro(connect, 404, Verbose);
 				}
 			}
-			else {                             // Se não foi recebido um método válido,
-				EnvMsgStringTxtErro(501);      // envia mensagem de erro 501 (Método Não Implementado)
+			else {                    // Se não foi recebido um método válido,
+				Mensagem.EnvStringErro(connect, 501, Verbose);
 			}
-		} catch (FileNotFoundException fnfe) {
-			try {
-				fileNotFound(out, dataOut, fileRequested);
-			} catch (IOException ioe) {
-				System.err.println("Erro: arquivo nao encontrado : " + ioe.getMessage());
-			}
-			
 		} catch (IOException ioe) {
 			System.err.println("Erro no Servidor: " + ioe);
 		} finally {
@@ -345,297 +311,8 @@ public class HTTPSrvCloud implements Runnable {
 			} catch (Exception e) {
 				System.err.println("Erro no fechamento do stream : " + e.getMessage());
 			} 
-			if (MntMsg.verbose) {
-				System.out.println("Conexao com o Cliente Encerrada\n"); 
-			}
+			Util.Terminal("Conexao com o Cliente Encerrada", false, Verbose);
 		}
-	}  // Fim da Rotina public void run() {
-	
-	
-	//*****************************************************************************************************************
-	// Nome da Rotina: EnvMsgArquivoTxt                                                                               *
-	//	                                                                                                              *
-	// Funcao: envia para o cliente conectado uma mensagem HTTP lida de um arquivo em caracteres                      *
-	//                                                                                                                *
-	// Entrada: String com o Caminho do Arquivo; String com o Nome do Arquivo                                         *
-	//                                                                                                                *
-	// Saida: se o arquivo foi lido corretamente retorna true                                                         *
-	//	                                                                                                              *
-	//*****************************************************************************************************************
-	//
-	boolean EnvMsgArquivoTxt(String Caminho, String NomeArquivo) {
-		PrintWriter out = null;
-		boolean ArquivoLido = false;
-		try {
-			out = new PrintWriter(connect.getOutputStream());
-			File Arquivo = new File(Caminho, NomeArquivo);
-			int TamArquivo = (int) Arquivo.length();
-			String DadosArquivo = LeArquivoTexto(Caminho, NomeArquivo);
-			
-			if (!DadosArquivo.equals("erro")) {          // Se o arquivo foi lido corretamente
-				ArquivoLido = true;
-				String tipo = TipoArquivo(NomeArquivo);  // obtém o tipo do arquivo, monta o cabeçalho e a mensagem
-				out.println("HTTP/1.1 200 OK");
-				out.println("Server: Java HTTP Server from PraxServer : 1.0");
-				out.println("Date: " + new Date());
-				out.println("Content-type: " + tipo);
-				out.println("Content-length: " + TamArquivo);
-				out.println();
-				out.print(DadosArquivo);
-				out.flush();
-				if (VG.verbose) {
-					System.out.println("Lido --- Arquivo com Mensagem HTTP: " + NomeArquivo);
-					System.out.println("Enviada Mensagem HTTP do tipo " + tipo + " com " + TamArquivo + " Caracteres"); 
-				}
-			}
-			else {
-				if (VG.verbose) {
-					System.out.println("Erro na leitura do arquivo: " + NomeArquivo);
-				}
-			}
-			return(ArquivoLido);
-		}
-		catch (IOException ioe) {
-			if (VG.verbose) {
-				System.out.println("Erro na Rotina EnvMsgArquivoTxt");
-			}
-			return(false);
-		}
-	} // Fim da Rotina
-	
-	
-	//*****************************************************************************************************************
-	// Nome da Rotina: EnvMsgArquivoByte                                                                              *
-	//	                                                                                                              *
-	// Funcao: envia para o cliente conectado uma mensagem HTTP lida de um arquivo em Bytes                           *
-	//                                                                                                                *
-	// Entrada: String com o Caminho do Arquivo; String com o Nome do Arquivo                                         *
-	//                                                                                                                *
-	// Saida: não tem                                                                                                 *
-	//	                                                                                                              *
-	//*****************************************************************************************************************
-	//
-	boolean EnvMsgArquivoByte(String Caminho, String NomeArquivo) {
-		PrintWriter out = null; BufferedOutputStream dataOut = null;
-		try {
-			out = new PrintWriter(connect.getOutputStream());
-			dataOut = new BufferedOutputStream(connect.getOutputStream());
-			File Arquivo = new File(Caminho, NomeArquivo);
-			int TamArquivo = (int) Arquivo.length();
-			String tipo = TipoArquivo(NomeArquivo);
-			byte[] MsgDados = readFileData(Arquivo, TamArquivo);
-			
-			out.println("HTTP/1.1 200 OK");
-			out.println("Server: Java HTTP Server from PraxServer : 1.0");
-			out.println("Date: " + new Date());
-			out.println("Content-type: " + tipo);
-			out.println("Content-length: " + TamArquivo);
-			out.println();
-			out.flush();
-			dataOut.write(MsgDados, 0, TamArquivo);
-			dataOut.flush();
-					
-			if (VG.verbose) {
-				System.out.println("Lido Arquivo com Mensagem HTTP: " + NomeArquivo);
-				System.out.println("Enviada Mensagem HTTP do tipo " + tipo + " com " + TamArquivo + " Caracteres"); 
-			}
-			return(true);
-		}
-		catch (IOException ioe) {
-			if (VG.verbose) {
-				System.out.println("Erro na Rotina EnvMsgArquivoByte");
-			}
-			return(false);
-		}
-	} // Fim da Rotina
-	
-	//*****************************************************************************************************************
-	// Nome da Rotina: EnvMsgStringTxt                                                                                *
-	//	                                                                                                              *
-	// Funcao: envia para o cliente conectado uma mensagem HTTP lida de uma String                                    *
-	//                                                                                                                *
-	// Entrada: String com a Mensagem a ser Enviada; String com o Tipo da Mensagem                                    *
-	//                                                                                                                *
-	// Saida: não tem                                                                                                 *
-	//	                                                                                                              *
-	//*****************************************************************************************************************
-	//
-	void EnvMsgStringTxt(String Msg, String Tipo, String CodRsp) {
-		PrintWriter out = null;
-		try {
-			out = new PrintWriter(connect.getOutputStream());
-			int TamMsg = Msg.length();
-			out.println("HTTP/1.1 " + CodRsp + " OK");
-			out.println("Server: Java HTTP Server from PraxServer : 1.0");
-			out.println("Date: " + new Date());
-			out.println("Content-type: " + Tipo);
-			out.println("Content-length: " + TamMsg);
-			out.println();
-			out.print(Msg);
-			out.flush();
-			if (VG.verbose) {
-				System.out.println("Enviada Mensagem do tipo " + Tipo + " com " + TamMsg + " Caracteres");
-			}
-		}
-		catch (IOException ioe) {
-			if (VG.verbose) {
-				System.out.println("Erro na Rotina EnvMsgArquivoByte");
-			}
-		}
-	}
-	
-	
-	//*****************************************************************************************************************
-	// Nome da Rotina: EnvMsgStringTxtErro                                                                            *
-	//	                                                                                                              *
-	// Funcao: envia para o cliente conectado uma mensagem de erro HTTP lida de uma String                            *
-	//                                                                                                                *
-	// Entrada: int com o código do erro (404 ou 501)                                                                 *
-	//                                                                                                                *
-	// Saida: não tem                                                                                                 *
-	//	                                                                                                              *
-	//*****************************************************************************************************************
-	//
-	void EnvMsgStringTxtErro(int Erro) {
-		PrintWriter out = null;
-		try {
-			out = new PrintWriter(connect.getOutputStream());
-			String LinhaInicial = "";
-			String MsgErro = "";
-			String Tipo = "text/html";
-			if (Erro == 404) {
-				LinhaInicial = "HTTP/1.1 404 File Not Found";
-				MsgErro = "<h2>404 File Not Found</h2><h3>HTTP/1.1 PraxServer</h3>";
-			}
-			
-			if (Erro == 501) {
-				LinhaInicial = "HTTP/1.1 501 Not Implemented";
-				MsgErro = "<h2>501 Not Implemented</h2><h3>HTTP/1.1 PraxServer</h3>";
-			}
-			int TamMsg = MsgErro.length();
-			out.println(LinhaInicial);
-			out.println("Server: Java HTTP Server from PraxServer : 1.0");
-			out.println("Date: " + new Date());
-			out.println("Content-type: " + Tipo);
-			out.println("Content-length: " + TamMsg);
-			out.println();
-			out.print(MsgErro);
-			out.flush();
-			if (VG.verbose) {
-				System.out.println("Enviada Mensagem de Erro: " + LinhaInicial);
-			}
-		}
-		catch (IOException ioe) {
-			System.out.println("Erro");
-		}
-	}
-	
-	
-	//*****************************************************************************************************************
-    //                                                                                                                *
-	// Nome da Rotina: readFileData                                                                                   *
-	//	                                                                                                              *
-	// Funcao: lê um arquivo no formato de sequencia de bytes                                                         *
-    //                                                                                                                *
-	// Entrada: variavel tipo arquivo e tamanho do arquivo a ser lido                                                 *
-    //                                                                                                                *
-	// Saida: array de bytes com o conteudo do arquivo                                                                *
-	//	                                                                                                              *
-	//*****************************************************************************************************************
-	//
-	private byte[] readFileData(File file, int fileLength) throws IOException {
-		FileInputStream fileIn = null;
-		byte[] fileData = new byte[fileLength];
-		
-		try {
-			fileIn = new FileInputStream(file);
-			fileIn.read(fileData);
-		} finally {
-			if (fileIn != null) 
-				fileIn.close();
-		}
-		
-		return fileData;
-	}
-	
-	
-	//*****************************************************************************************************************
-    //                                                                                                                *
-	// Nome da Rotina: LeArquivoTexto                                                                                 *
-	//	                                                                                                              *
-	// Funcao: lê um arquivo texto                                                                                    *
-    //                                                                                                                *
-	// Entrada: string com caminho do arquivo e string com o nome do arquivo a ser lido                               *
-    //                                                                                                                *
-	// Saida: String com o conteúdo do arquivo texto lido                                                             *
-	//	                                                                                                              *
-	//*****************************************************************************************************************
-	//
-	private String LeArquivoTexto(String Caminho, String NomeArquivo) {
-		String Arq = "";
-		File Arquivo = new File(Caminho + NomeArquivo);
-		try {
-			BufferedReader br = new BufferedReader(new FileReader(Arquivo));
-		    
-			String st; 
-			while ((st = br.readLine()) != null) {
-				Arq = Arq + st + "\n";
-			}
-		} catch (IOException e) {
-			return("erro");
-		}
-		
-		return(Arq);
-	}
-	
-	
-	//*****************************************************************************************************************
-    //                                                                                                                *
-	// Nome da Rotina: getContentType                                                                                 *
-	//	                                                                                                              *
-	// Funcao: determina o tipo do arquivo texto de acordo com a extensão                                             *
-    //                                                                                                                *
-	// Entrada: string com o tipo do arquivo texto (text/html ou text/javascript ou text/css ou text/plain            *
-    //                                                                                                                *
-	// Saida: String com o conteúdo do arquivo texto lido                                                             *
-	//	                                                                                                              *
-	//*****************************************************************************************************************
-	//
-	private String TipoArquivo(String fileRequested) {
-		String tipo = "text/plain";
-		if (fileRequested.endsWith(".htm")  ||  fileRequested.endsWith(".html")) {
-			tipo = "text/html";
-		}
-		
-		if (fileRequested.endsWith(".js")) {
-			tipo = "text/javascript";
-		}
-		
-		if (fileRequested.endsWith(".css")) {
-			tipo = "text/css";
-		}
-		
-		if (fileRequested.endsWith(".jpg")  ||  fileRequested.endsWith(".jpeg")) {
-			tipo = "image/jpeg";
-		}
-		
-		if (fileRequested.endsWith(".gif")) {
-			tipo = "image/gif";
-		}
-		
-		if (fileRequested.endsWith(".png")) {
-			tipo = "image/png";
-		}
-		
-		if (fileRequested.endsWith(".bmp")) {
-			tipo = "image/bmp";
-		}
-		
-		return(tipo);
-	}
-	
-	private void fileNotFound(PrintWriter out, OutputStream dataOut, String fileRequested) throws IOException {
-		EnvMsgStringTxtErro(404);  // envia mensagem de erro 404 (Recurso não Disponível)
-	}
-	
+	} // Fim do public void run
 }
+
